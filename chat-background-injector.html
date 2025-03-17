@@ -105,9 +105,9 @@
                 const encodedUrl = encodeURIComponent(inputUrl);
                 const currentUrl = new URL(window.location.href);
                 currentUrl.searchParams.set('chatUrl', encodedUrl);
-                // Preserve the bgColor parameter if it exists
-                if (bgColor) {
-                    currentUrl.searchParams.set('bgColor', bgColor);
+                // Preserve the bgColor parameter from the current URL if it exists
+                if (urlParams.has('bgColor')) {
+                    currentUrl.searchParams.set('bgColor', urlParams.get('bgColor'));
                 }
                 window.location.href = currentUrl.toString();
             });
