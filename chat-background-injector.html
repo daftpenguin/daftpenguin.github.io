@@ -27,6 +27,41 @@
             -webkit-transform: scale(1);
             -webkit-transform-origin: top left;
         }
+
+        #url-form {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            width: 80%;
+            max-width: 600px;
+        }
+
+        #url-input {
+            width: 100%;
+            padding: 8px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        #submit-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #submit-btn:hover {
+            background: #0056b3;
+        }
     </style>
 </head>
 <body>
@@ -35,7 +70,8 @@
     <script>
         // Get the original URL from query parameter
         const urlParams = new URLSearchParams(window.location.search);
-        const chatUrl = urlParams.get('chatUrl');
+        const encodedChatUrl = urlParams.get('chatUrl');
+        const chatUrl = encodedChatUrl ? decodeURIComponent(encodedChatUrl) : null;
         let bgColor = urlParams.get('bgColor');
 
         // Handle comma-separated values for bgColor
@@ -53,7 +89,28 @@
         if (chatUrl) {
             document.getElementById('chat-frame').src = chatUrl;
         } else {
-            document.write('<p>Please provide a chatUrl parameter in the URL</p>');
+            // Create and show the URL input form
+            const form = document.createElement('form');
+            form.id = 'url-form';
+            form.innerHTML = `
+                <h3>Enter Chat URL</h3>
+                <input type="text" id="url-input" placeholder="Paste your chat URL here" required>
+                <button type="submit" id="submit-btn">Load Chat</button>
+            `;
+            document.body.appendChild(form);
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const inputUrl = document.getElementById('url-input').value;
+                const encodedUrl = encodeURIComponent(inputUrl);
+                const currentUrl = new URL(window.location.href);
+                currentUrl.searchParams.set('chatUrl', encodedUrl);
+                // Preserve the bgColor parameter if it exists
+                if (bgColor) {
+                    currentUrl.searchParams.set('bgColor', bgColor);
+                }
+                window.location.href = currentUrl.toString();
+            });
         }
     </script>
 </body>
