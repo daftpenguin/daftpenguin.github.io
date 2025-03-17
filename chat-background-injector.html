@@ -42,12 +42,35 @@
             max-width: 600px;
         }
 
+        .form-group {
+            margin: 15px 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
         #url-input {
             width: 100%;
             padding: 8px;
             margin: 10px 0;
             border: 1px solid #ccc;
             border-radius: 4px;
+        }
+
+        #color-picker {
+            width: 100%;
+            height: 40px;
+            padding: 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #alpha-slider {
+            width: 100%;
+            margin: 10px 0;
         }
 
         #submit-btn {
@@ -57,6 +80,8 @@
             padding: 8px 16px;
             border-radius: 4px;
             cursor: pointer;
+            width: 100%;
+            margin-top: 15px;
         }
 
         #submit-btn:hover {
@@ -94,10 +119,39 @@
             form.id = 'url-form';
             form.innerHTML = `
                 <h3>Enter Chat URL</h3>
-                <input type="text" id="url-input" placeholder="Paste your chat URL here" required>
+                <div class="form-group">
+                    <label for="url-input">Chat URL:</label>
+                    <input type="text" id="url-input" placeholder="Paste your chat URL here" required>
+                </div>
+                <div class="form-group">
+                    <label for="color-picker">Background Color:</label>
+                    <input type="color" id="color-picker" value="#7f7f7f">
+                    <input type="range" id="alpha-slider" min="0" max="100" value="50">
+                </div>
                 <button type="submit" id="submit-btn">Load Chat</button>
             `;
             document.body.appendChild(form);
+
+            const colorPicker = document.getElementById('color-picker');
+            const alphaSlider = document.getElementById('alpha-slider');
+
+            // Initialize color picker and alpha slider from current bgColor
+            if (bgColor.startsWith('rgba(')) {
+                const [r, g, b, a] = bgColor.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/).slice(1).map(Number);
+                colorPicker.value = `#${[r, g, b].map(x => x.toString(16).padStart(2, '0')).join('')}`;
+                alphaSlider.value = Math.round(a * 100);
+                updateBackgroundColor();
+            }
+
+            function updateBackgroundColor() {
+                const color = colorPicker.value;
+                const alpha = alphaSlider.value / 100;
+                const [r, g, b] = color.match(/[^#]{2}/g).map(x => parseInt(x, 16));
+                document.body.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+
+            colorPicker.addEventListener('input', updateBackgroundColor);
+            alphaSlider.addEventListener('input', updateBackgroundColor);
 
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
@@ -105,10 +159,14 @@
                 const encodedUrl = encodeURIComponent(inputUrl);
                 const currentUrl = new URL(window.location.href);
                 currentUrl.searchParams.set('chatUrl', encodedUrl);
-                // Preserve the bgColor parameter from the current URL if it exists
-                if (urlParams.has('bgColor')) {
-                    currentUrl.searchParams.set('bgColor', urlParams.get('bgColor'));
-                }
+
+                // Get the current color values
+                const color = colorPicker.value;
+                const alpha = alphaSlider.value / 100;
+                const [r, g, b] = color.match(/[^#]{2}/g).map(x => parseInt(x, 16));
+                const bgColorParam = `${r},${g},${b},${alpha}`;
+                currentUrl.searchParams.set('bgColor', bgColorParam);
+
                 window.location.href = currentUrl.toString();
             });
         }
