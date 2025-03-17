@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Translucent Chat Overlay</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            background-color: rgba(127, 127, 127, 0.5);
+        }
+        
+        iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body>
+    <iframe id="chat-frame" src="" allowtransparency="true"></iframe>
+    
+    <script>
+        // Get the original URL from query parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const chatUrl = urlParams.get('chatUrl');
+        const bgColor = urlParams.get('bgColor') || 'rgba(127, 127, 127, 0.5)';
+
+        document.body.style.backgroundColor = bgColor;
+        
+        if (chatUrl) {
+            document.getElementById('chat-frame').src = chatUrl;
+        } else {
+            document.write('<p>Please provide a chatUrl parameter in the URL</p>');
+        }
+    </script>
+</body>
+</html>
