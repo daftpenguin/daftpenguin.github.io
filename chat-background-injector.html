@@ -31,8 +31,18 @@
         // Get the original URL from query parameter
         const urlParams = new URLSearchParams(window.location.search);
         const chatUrl = urlParams.get('chatUrl');
-        const bgColor = urlParams.get('bgColor') || 'rgba(127, 127, 127, 0.5)';
+        let bgColor = urlParams.get('bgColor');
 
+        // Handle comma-separated values for bgColor
+        if (bgColor && bgColor.includes(',')) {
+            const [r, g, b, a] = bgColor.split(',').map(val => parseFloat(val.trim()));
+            if (!isNaN(r) && !isNaN(g) && !isNaN(b) && !isNaN(a)) {
+                bgColor = `rgba(${r}, ${g}, ${b}, ${a})`;
+            }
+        }
+
+        // Fallback to default if bgColor is invalid or not provided
+        bgColor = bgColor || 'rgba(127, 127, 127, 0.5)';
         document.body.style.backgroundColor = bgColor;
         
         if (chatUrl) {
