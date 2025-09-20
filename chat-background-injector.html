@@ -86,9 +86,26 @@
         #submit-btn:hover {
             background: #0056b3;
         }
+
+        #background-image {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        #background-image.visible {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
+    <img id="background-image" src="" alt="">
     <iframe id="chat-frame" src="" allowtransparency="true"></iframe>
     
     <script>
@@ -109,6 +126,146 @@
         // Fallback to default if bgColor is invalid or not provided
         bgColor = bgColor || 'rgba(127, 127, 127, 0.5)';
         document.body.style.backgroundColor = bgColor;
+
+        // Background image management
+        let currentImageTimeout = null;
+        const backgroundImage = document.getElementById('background-image');
+
+        function showBackgroundImage(imageUrl, durationSeconds) {
+            // Clear any existing timeout
+            if (currentImageTimeout) {
+                clearTimeout(currentImageTimeout);
+            }
+
+            // Load and show the new image
+            backgroundImage.src = imageUrl;
+            backgroundImage.onload = function() {
+                backgroundImage.classList.add('visible');
+                
+                // Set timeout to hide the image after the specified duration
+                currentImageTimeout = setTimeout(() => {
+                    hideBackgroundImage();
+                }, durationSeconds * 1000);
+            };
+            
+            backgroundImage.onerror = function() {
+                console.error('Failed to load background image:', imageUrl);
+            };
+        }
+
+        function hideBackgroundImage() {
+            backgroundImage.classList.remove('visible');
+            currentImageTimeout = null;
+        }
+
+        // Server connection management
+        let eventSource = null;
+        let websocket = null;
+        let reconnectInterval = null;
+
+        function connectToServer() {
+            let serverUrl = urlParams.get('serverUrl');
+            
+            // Handle env parameter for easy local testing
+            const env = urlParams.get('env');
+            if (env === 'local' && !serverUrl) {
+                serverUrl = 'ws://localhost:8765';
+            }
+            
+            // Default to production if no serverUrl specified
+            serverUrl = serverUrl || 'wss://daftpenguin.com/background-events';
+            
+            // Try WebSocket first, fall back to SSE
+            if (serverUrl.startsWith('ws://') || serverUrl.startsWith('wss://')) {
+                connectWebSocket(serverUrl);
+            } else {
+                connectSSE(serverUrl);
+            }
+        }
+
+        function connectWebSocket(url) {
+            try {
+                websocket = new WebSocket(url);
+                
+                websocket.onopen = function() {
+                    if (reconnectInterval) {
+                        clearInterval(reconnectInterval);
+                        reconnectInterval = null;
+                    }
+                };
+                
+                websocket.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'background-image' && data.url && data.duration) {
+                            showBackgroundImage(data.url, data.duration);
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse WebSocket message:', e);
+                    }
+                };
+                
+                websocket.onclose = function() {
+                    websocket = null;
+                    scheduleReconnect();
+                };
+                
+                websocket.onerror = function(error) {
+                    console.error('WebSocket error:', error);
+                };
+                
+            } catch (e) {
+                console.error('Failed to create WebSocket:', e);
+                scheduleReconnect();
+            }
+        }
+
+        function connectSSE(url) {
+            try {
+                eventSource = new EventSource(url);
+                
+                eventSource.onopen = function() {
+                    if (reconnectInterval) {
+                        clearInterval(reconnectInterval);
+                        reconnectInterval = null;
+                    }
+                };
+                
+                eventSource.addEventListener('background-image', function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.url && data.duration) {
+                            showBackgroundImage(data.url, data.duration);
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse SSE message:', e);
+                    }
+                });
+                
+                eventSource.onerror = function() {
+                    eventSource.close();
+                    eventSource = null;
+                    scheduleReconnect();
+                };
+                
+            } catch (e) {
+                console.error('Failed to create EventSource:', e);
+                scheduleReconnect();
+            }
+        }
+
+        function scheduleReconnect() {
+            if (!reconnectInterval) {
+                reconnectInterval = setInterval(() => {
+                    if (!websocket && !eventSource) {
+                        connectToServer();
+                    }
+                }, 5000); // Retry every 5 seconds
+            }
+        }
+
+        // Start connection to server
+        connectToServer();
         
         if (chatUrl) {
             document.getElementById('chat-frame').src = chatUrl;
