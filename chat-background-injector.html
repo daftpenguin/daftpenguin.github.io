@@ -192,6 +192,20 @@
                         clearInterval(reconnectInterval);
                         reconnectInterval = null;
                     }
+                    
+                    // Send screen dimensions on connection
+                    const dimensions = {
+                        type: 'client-info',
+                        screen: {
+                            width: screen.width,
+                            height: screen.height
+                        },
+                        viewport: {
+                            width: window.innerWidth,
+                            height: window.innerHeight
+                        }
+                    };
+                    websocket.send(JSON.stringify(dimensions));
                 };
                 
                 websocket.onmessage = function(event) {
